@@ -16,8 +16,9 @@ sudo ~/rtl8723bs_bt/start_bt.sh
 
 As this command will need to be done everytime the system is rebooted, you
 might consider placing this command in the system startup commands. The path
-of the command might have to be adjusted.
-
+of the command might have to be adjusted. In addition, the file assumes that
+the BT device is attached to /dev/ttyS4, which may not be correct for your
+hardware. Thus, the file may need to be modified.
 
 WARNING: This driver neede the H5 protocol, which is built into kernels 3.12
 and later. If you need to use an earlier kernel, raise an issue for this repo.
