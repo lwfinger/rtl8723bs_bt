@@ -4,13 +4,13 @@ section of the RTL8723BS hardware used on a number of tablets.
 The main program is called rtk_hciattach. To build this program, issue the
 following command:
 
-make -f make_hciattach
+make
 
 To install the firmware (only needed once):
 
-sudo make -f make_hciattach install
+sudo make install
 
-To start Bluetooth (neede for each boot), use the command
+To start Bluetooth (needed for each boot), use the command
 
 sudo ~/rtl8723bs_bt/start_bt.sh
 
