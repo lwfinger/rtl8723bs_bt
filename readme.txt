@@ -14,14 +14,18 @@ To start Bluetooth (needed for each boot), use the command
 
 sudo ~/rtl8723bs_bt/start_bt.sh
 
+Note: The script assumes that the Bluetooth device is attached to /dev/ttyS4.
+That may not be correct for your system. To discover the correct serial port,
+run 'dmesg | grep tty'. You should see two lines that say "ttyXX at MMIO 0xYYYYYYYY.
+Edit start_bt.sh to set the definition of TTY to use the value of XX for the first
+of these two lines.
+
 As this command will need to be done everytime the system is rebooted, you
 might consider placing this command in the system startup commands. The path
-of the command might have to be adjusted. In addition, the file assumes that
-the BT device is attached to /dev/ttyS4, which may not be correct for your
-hardware. Thus, the file may need to be modified.
+of the command will have to be adjusted.
 
-WARNING: This driver neede the H5 protocol, which is built into kernels 3.12
-and later. If you need to use an earlier kernel, raise an issue for this repo.
+WARNING: This driver needs the H5 protocol, which is built into kernels 3.12
+and later. If you need to use an earlier kernel, raise an issue on this repo.
 
 Larry Finger
 
