@@ -51,8 +51,8 @@
 
 #define BAUDRATE_4BYTES
 //#define USE_CUSTUMER_ADDRESS
-#define FIRMWARE_DIRECTORY  "/lib/firmware/rtlbt/"
-#define BT_CONFIG_DIRECTORY "/lib/firmware/rtlbt/"
+#define FIRMWARE_DIRECTORY  "/lib/firmware/rtl_bt/"
+#define BT_CONFIG_DIRECTORY "/lib/firmware/rtl_bt/"
 
 #ifdef USE_CUSTUMER_ADDRESS
 #define BT_ADDR_DIR         "/data/bt_mac/"
