@@ -12,5 +12,5 @@ else
 	mkdir -p /lib/firmware/rtlbt/
 	cp rtlbt_* /lib/firmware/rtlbt/.
 fi
-./rtk_hciattach -n -s 115200 $TTY rtk_h5 > /dev/null 2>&1 &
+./rtk_hciattach -n -s 115200 $TTY rtk_h5 > hciattach.txt 2>&1 &
 
