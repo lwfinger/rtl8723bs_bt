@@ -3,12 +3,14 @@
 # Shell script to install Bluetooth firmware and attach BT part of
 # RTL8723BS
 #
-# Find the TTY attached to the BT device
-TTYSTRING=`dmesg -t | grep tty | grep MMIO | cut -b 14-18`
-TTY=`expr substr "$TTYSTRING" 1 5`
-
-if [ "$TTYSTRING" = "" ]
+if [ "$1" = "" ]
 then
+    # Find the TTY attached to the BT device
+    TTYSTRING=`dmesg -t | grep tty | grep MMIO | cut -b 14-18`
+    TTY=`expr substr "$TTYSTRING" 1 5`
+
+    if [ "$TTYSTRING" = "" ]
+    then
 	echo
 	echo "No BT TTY device has been found"
 	echo "Either this computer has no BT device that uses hciattach, or"
@@ -16,6 +18,10 @@ then
 	echo "Note: The configuration variable is CONFIG_SERIAL_8250_DW."
 	echo
 	exit 1
+    fi
+else
+    # Use the TTY device mentioned oi the call
+    TTY=$1
 fi
 
 TTY="/dev/$TTY"
