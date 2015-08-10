@@ -27,10 +27,10 @@ fi
 TTY="/dev/$TTY"
 echo "Using device $TTY for Bluetooth"
 
-if [ ! -f /lib/firmware/rtlbt/rtlbt_config ];
+if [ ! -f /lib/firmware/rtl_bt/rtlbt_config ];
 then
-	mkdir -p /lib/firmware/rtlbt/
-	cp rtlbt_* /lib/firmware/rtlbt/.
+	mkdir -p /lib/firmware/rtl_bt/
+	cp rtlbt_* /lib/firmware/rtl_bt/.
 fi
 ./rtk_hciattach -n -s 115200 $TTY rtk_h5 > hciattach.txt 2>&1 &
 
