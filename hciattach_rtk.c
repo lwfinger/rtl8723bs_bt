@@ -49,15 +49,8 @@
 
 #define RTK_VERSION "2.5"
 
-#define BAUDRATE_4BYTES
-//#define USE_CUSTUMER_ADDRESS
 #define FIRMWARE_DIRECTORY  "/lib/firmware/rtl_bt/"
 #define BT_CONFIG_DIRECTORY "/lib/firmware/rtl_bt/"
-
-#ifdef USE_CUSTUMER_ADDRESS
-#define BT_ADDR_DIR         "/data/bt_mac/"
-#define BT_ADDR_FILE        "/data/bt_mac/btmac.txt"
-#endif
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define cpu_to_le16(d)  (d)
@@ -1393,18 +1386,12 @@ static int rtk_vendor_change_speed_h4(int fd, RT_U32 baudrate)
 	cmd[2] = 0xfc;  //ogf
 	cmd[3] = 4;     //length;
 
-    baudrate = cpu_to_le32(baudrate);
-#ifdef BAUDRATE_4BYTES
-    memcpy((RT_U16*)&cmd[4], &baudrate, 4);
-#else
-    memcpy((RT_U16*)&cmd[4], &baudrate, 2);
-	cmd[6] = 0;
-	cmd[7] = 0;
-#endif
+	baudrate = cpu_to_le32(baudrate);
+	memcpy((RT_U16*)&cmd[4], &baudrate, 4);
 	
 	//wait for a while for device to up, just h4 need it
 	sleep(1);
-    RS_DBG("baudrate in change speed command: 0x%x 0x%x 0x%x 0x%x \n", cmd[4], cmd[5], cmd[6], cmd[7]);
+	RS_DBG("baudrate in change speed command: 0x%x 0x%x 0x%x 0x%x \n", cmd[4], cmd[5], cmd[6], cmd[7]);
 
 	if( write(fd, cmd, 8) != 8)
 	{
@@ -1412,15 +1399,14 @@ static int rtk_vendor_change_speed_h4(int fd, RT_U32 baudrate)
 		return -1;
 	}
 	RS_DBG("H4 Change uart Baudrate after write ");
-    res = read(fd, bytes, sizeof(bytes));
+	res = read(fd, bytes, sizeof(bytes));
 
-    if((0x04 == bytes[0]) && (0x17 == bytes[4]) && (0xfc == bytes[5]))
-    {
-	    RS_DBG("H4 change uart speed success, receving status:%x", bytes[6]);
-	    if (bytes[6] == 0)
-		    return 0;
-    }
-    return -1;
+	if ((0x04 == bytes[0]) && (0x17 == bytes[4]) && (0xfc == bytes[5])) {
+		RS_DBG("H4 change uart speed success, receving status:%x", bytes[6]);
+		if (bytes[6] == 0)
+			return 0;
+	}
+	return -1;
 }
 
 /**
@@ -1476,33 +1462,15 @@ RT_U32 rtk_parse_config_file(RT_U8* config_buf, size_t filelen, char bt_addr[6])
 	}
 
 	for (i=0; i<config_len;) {
-
 		switch(le16_to_cpu(entry->offset)) {
-#ifdef USE_CUSTUMER_ADDRESS
-			case 0x3c:
-			{
-				int j=0;
-				for (j=0; j<entry->entry_len; j++)
-					entry->entry_data[j] = bt_addr[entry->entry_len - 1 - j];
-				break;
-			}
-#endif
 			case 0xc:
-			{
-#ifdef BAUDRATE_4BYTES
-                baudrate = get_unaligned_le32(entry->entry_data);
-#else
-                baudrate = get_unaligned_le16(entry->entry_data);
-#endif
+				baudrate = get_unaligned_le32(entry->entry_data);
 				
 				if (entry->entry_len >= 12) //0ffset 0x18 - 0xc
-				{
 					rtk_hw_cfg.hw_flow_control = (entry->entry_data[12] & 0x4) ? 1:0; //0x18 byte bit2
-				}
 				RS_DBG("config baud rate to :%x, hwflowcontrol:%x, %x",
                             (unsigned int)baudrate, entry->entry_data[12], rtk_hw_cfg.hw_flow_control);
 				break;
-			}
 			default:
 				RS_DBG("config offset(%x),length(%x)", entry->offset, entry->entry_len);
 				break;
@@ -1514,47 +1482,6 @@ RT_U32 rtk_parse_config_file(RT_U8* config_buf, size_t filelen, char bt_addr[6])
 
 	return baudrate;
 }
-
-#ifdef USE_CUSTUMER_ADDRESS
-/**
-* get random realtek Bluetooth addr.
-*
-* @param bt_addr where bt addr is stored
-*
-*/
-static void rtk_get_ram_addr(char bt_addr[0])
-{
-	srand(time(NULL)+getpid()+getpid()*987654+rand());
-
-	RT_U32 addr = rand();
-	memcpy(bt_addr, &addr, sizeof(RT_U8));
-}
-
-/**
-* Write the random bt addr to the file /data/misc/bluetoothd/bt_mac/btmac.txt.
-*
-* @param bt_addr where bt addr is stored
-*
-*/
-static void rtk_write_btmac2file(char bt_addr[6])
-{
-	int fd;
-	mkdir(BT_ADDR_DIR, 0777);
-	fd = open(BT_ADDR_FILE, O_CREAT|O_RDWR|O_TRUNC);
-
-	if(fd > 0) {
-		chmod(BT_ADDR_FILE, 0666);
-		char addr[18]={0};
-		addr[17] = '\0';
-		sprintf(addr, "%2x:%2x:%2x:%2x:%2x:%2x", bt_addr[0], bt_addr[1], bt_addr[2], bt_addr[3], bt_addr[4], bt_addr[5]);
-		write(fd, addr, strlen(addr));
-		close(fd);
-	}
-	else {
-		RS_ERR("open file error:%s\n", BT_ADDR_FILE);
-	}
-}
-#endif
 
 /**
 * Get realtek Bluetooth config file. The bt addr arg is stored in /data/btmac.txt, if there is not this file,
@@ -1577,37 +1504,6 @@ int rtk_get_bt_config(unsigned char** config_buf, RT_U32* config_baud_rate)
 	int ret = 0;
 	int i = 0;
 
-#ifdef USE_CUSTUMER_ADDRESS
-	sprintf(bt_config_file_name, BT_ADDR_FILE);
-	if (stat(bt_config_file_name, &st) < 0) {
-		RS_ERR("can't access bt bt_mac_addr file:%s, try use ramdom BT Addr\n", bt_config_file_name);
-		
-		for(i = 0; i < 6; i++)
-	    	rtk_get_ram_addr(&bt_addr[i]);
-		rtk_write_btmac2file(bt_addr);
-		goto GET_CONFIG;
-    }
-
-
-	filelen = st.st_size;
-	if ((file= fopen(bt_config_file_name, "rb")) == NULL) {
-		RS_ERR("Can't open bt btaddr file, just use preset BT Addr");
-	} else {
-		int i = 0;
-		char temp;
-        fscanf(file, "%2x:%2x:%2x:%2x:%2x:%2x", (unsigned int *)&bt_addr[0], (unsigned int*)&bt_addr[1], (unsigned int*)&bt_addr[2], (unsigned int*)&bt_addr[3], (unsigned int*)&bt_addr[4], (unsigned int*)&bt_addr[5]);
-
-        /*reserve LAP addr from 0x9e8b00 to 0x9e8b3f, change to 0x008b***/
-        if(0x9e == bt_addr[3] && 0x8b == bt_addr[4] && (bt_addr[5] <= 0x3f)){
-            bt_addr[3] = 0x00;
-        }
-        RS_DBG("BT MAC IS : %X,%X,%X,%X,%X,%X\n", bt_addr[0], bt_addr[1], bt_addr[2], bt_addr[3], bt_addr[4], bt_addr[5]);
-
-		fclose(file);
-	}
-#endif
-
-GET_CONFIG:
 	ret = sprintf(bt_config_file_name, BT_CONFIG_DIRECTORY"rtlbt_config"); 
 	if (stat(bt_config_file_name, &st) < 0) {
 		RS_ERR("can't access bt config file:%s, errno:%d\n", bt_config_file_name, errno);
@@ -1669,17 +1565,10 @@ int rtk_vendor_change_speed_h5(int fd, RT_U32 baudrate)
 
 	cmd[2] = 4;     //length;
 
-    baudrate = cpu_to_le32(baudrate);
-#ifdef BAUDRATE_4BYTES
-    memcpy((RT_U16*)&cmd[3], &baudrate, 4);
-#else
-    memcpy((RT_U16*)&cmd[3], &baudrate, 2);
+	baudrate = cpu_to_le32(baudrate);
+	memcpy((RT_U16*)&cmd[3], &baudrate, 4);
 
-	cmd[5] = 0;
-	cmd[6] = 0;
-#endif
-
-    RS_DBG("baudrate in change speed command: 0x%x 0x%x 0x%x 0x%x \n", cmd[3], cmd[4], cmd[5], cmd[6]);
+	RS_DBG("baudrate in change speed command: 0x%x 0x%x 0x%x 0x%x \n", cmd[3], cmd[4], cmd[5], cmd[6]);
 
 	cmd_change_bdrate = h5_prepare_pkt(&rtk_hw_cfg, cmd, 7, HCI_COMMAND_PKT);
 	if (!cmd_change_bdrate) {
@@ -1939,7 +1828,6 @@ typedef struct _baudrate_ex
 	int uart_speed;
 }baudrate_ex;
 
-#ifdef BAUDRATE_4BYTES
 baudrate_ex baudrates[] =
 {
 	{0x0252C014, 115200},
@@ -1954,19 +1842,6 @@ baudrate_ex baudrates[] =
 	{0x052A6001, 3500000},
 	{0x00005001, 4000000},
 };
-#else
-baudrate_ex baudrates[] =
-{
-	{0x701d, 115200}
-    {0x6004, 921600},
-	{0x4003, 1500000},
-	{0x5002, 2000000},
-	{0x8001, 3000000},
-	{0x9001, 3000000},
-    {0x7001, 3500000},
-    {0x5001, 4000000},
-};
-#endif
 
 /**
 * Change realtek Bluetooth speed to uart speed. It is matching in the struct baudrates:
