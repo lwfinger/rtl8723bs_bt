@@ -10,6 +10,11 @@ To install the firmware (only needed once):
 
 sudo make install
 
+Some users have found that an alternate firmware works for them. To try this
+firmware, do this command:
+
+sudo cp rtlbt_fw_new /lib/firmware/rtl_bt/rtlbt_fw
+
 To start Bluetooth (needed for each boot), use the command
 
 sudo ~/rtl8723bs_bt/start_bt.sh
